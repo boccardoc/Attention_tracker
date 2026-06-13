@@ -57,7 +57,8 @@ jobs:
         working-directory: web
         env:
           STATIC: "1"
-          BASE_PATH: "/attention_tracker"
+          # Must match the repository name exactly (GitHub Pages paths are case-sensitive).
+          BASE_PATH: "/Attention_tracker"
         run: npm run build
 
       - uses: actions/configure-pages@v5

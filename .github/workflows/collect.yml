@@ -1,0 +1,63 @@
+name: collect
+
+# Daily attention collection + CI for the collector.
+#
+# NOTE: we deliberately do NOT commit the binary SQLite file back to git (it bloats
+# history and causes merge conflicts). The DB is persisted across runs via actions/cache
+# and exposed as an artifact. The authoritative production run is a local/single-node
+# cron reading/writing the shared data/attention.db; this workflow mirrors it for CI and
+# as a hosted fallback.
+
+on:
+  schedule:
+    - cron: "0 22 * * *"   # 22:00 UTC daily
+  push:
+    paths:
+      - "collector/**"
+      - ".github/workflows/collect.yml"
+  workflow_dispatch:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: pip install -r collector/requirements.txt
+      - name: Validate taxonomy
+        run: python collector/validate_taxonomy.py
+      - name: Unit tests (normalize)
+        run: pytest collector/tests -q
+
+  collect:
+    # Only the scheduled/manual run actually hits external APIs.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: pip install -r collector/requirements.txt
+      - name: Restore DB cache
+        uses: actions/cache@v4
+        with:
+          path: data/attention.db
+          key: attention-db-${{ github.run_id }}
+          restore-keys: attention-db-
+      - name: Run collector
+        env:
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
+        run: python collector/collect.py
+      - name: Upload DB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: attention-db
+          path: data/attention.db
+          retention-days: 14

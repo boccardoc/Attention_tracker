@@ -1,0 +1,402 @@
+[
+  {
+    "id": "ai-infrastructure",
+    "name": "AI Infrastructure & Datacenters",
+    "category": "Technology",
+    "wikipedia_articles": ["Data center", "Artificial intelligence", "Nvidia"],
+    "gtrends_queries": ["ai datacenter stocks", "data center stocks", "ai infrastructure"],
+    "reddit_keywords": ["datacenter", "data center", "NVDA", "VRT", "AI infrastructure"],
+    "basket": { "etf": "AIQ", "stocks": ["NVDA", "VRT", "SMCI", "ANET", "DLR"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "semiconductors",
+    "name": "Semiconductors",
+    "category": "Technology",
+    "wikipedia_articles": ["Semiconductor", "Integrated circuit", "TSMC"],
+    "gtrends_queries": ["semiconductor stocks", "chip stocks", "semiconductor etf"],
+    "reddit_keywords": ["semis", "semiconductor", "SMH", "TSM", "ASML"],
+    "basket": { "etf": "SMH", "stocks": ["TSM", "AMD", "ASML", "AVGO", "MU"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "nuclear-renaissance",
+    "name": "Nuclear Renaissance",
+    "category": "Energy",
+    "wikipedia_articles": ["Nuclear power", "Small modular reactor", "Nuclear reactor"],
+    "gtrends_queries": ["nuclear energy stocks", "nuclear stocks", "smr stocks"],
+    "reddit_keywords": ["nuclear", "SMR", "OKLO", "reactor", "BWXT"],
+    "basket": { "etf": "NLR", "stocks": ["CEG", "VST", "OKLO", "SMR", "BWXT"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "uranium",
+    "name": "Uranium",
+    "category": "Energy",
+    "wikipedia_articles": ["Uranium", "Uranium mining", "Yellowcake"],
+    "gtrends_queries": ["uranium stocks", "uranium price", "uranium etf"],
+    "reddit_keywords": ["uranium", "URA", "CCJ", "UUUU", "yellowcake"],
+    "basket": { "etf": "URA", "stocks": ["CCJ", "UEC", "DNN", "UUUU", "LEU"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "natural-gas-lng",
+    "name": "Natural Gas & LNG",
+    "category": "Energy",
+    "wikipedia_articles": ["Liquefied natural gas", "Natural gas", "LNG carrier"],
+    "gtrends_queries": ["natural gas stocks", "lng stocks", "natural gas price"],
+    "reddit_keywords": ["natgas", "natural gas", "LNG", "EQT", "Cheniere"],
+    "basket": { "etf": "FCG", "stocks": ["LNG", "EQT", "WMB", "KMI", "OKE"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "oil-services",
+    "name": "Oil Services",
+    "category": "Energy",
+    "wikipedia_articles": ["Oilfield services", "Hydraulic fracturing", "Drilling rig"],
+    "gtrends_queries": ["oil services stocks", "oilfield stocks", "oih etf"],
+    "reddit_keywords": ["oil services", "OIH", "SLB", "oilfield", "Halliburton"],
+    "basket": { "etf": "OIH", "stocks": ["SLB", "HAL", "BKR", "FTI", "NOV"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "solar",
+    "name": "Solar",
+    "category": "Energy",
+    "wikipedia_articles": ["Solar power", "Photovoltaics", "Solar panel"],
+    "gtrends_queries": ["solar stocks", "solar energy stocks", "tan etf"],
+    "reddit_keywords": ["solar", "TAN", "FSLR", "ENPH", "solar panel"],
+    "basket": { "etf": "TAN", "stocks": ["FSLR", "ENPH", "SEDG", "RUN", "NXT"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "grid-utilities",
+    "name": "Grid & Utilities",
+    "category": "Energy",
+    "wikipedia_articles": ["Electrical grid", "Electric utility", "Smart grid"],
+    "gtrends_queries": ["utility stocks", "power grid stocks", "xlu etf"],
+    "reddit_keywords": ["utilities", "power grid", "GEV", "XLU", "Quanta"],
+    "basket": { "etf": "XLU", "stocks": ["NEE", "GEV", "ETN", "PWR", "AEP"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "copper",
+    "name": "Copper",
+    "category": "Materials",
+    "wikipedia_articles": ["Copper", "Copper mining", "Copper extraction"],
+    "gtrends_queries": ["copper stocks", "copper price", "copper etf"],
+    "reddit_keywords": ["copper", "FCX", "COPX", "Freeport", "Southern Copper"],
+    "basket": { "etf": "COPX", "stocks": ["FCX", "SCCO", "TECK", "ERO", "HBM"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "gold-miners",
+    "name": "Gold & Miners",
+    "category": "Materials",
+    "wikipedia_articles": ["Gold", "Gold mining", "Gold as an investment"],
+    "gtrends_queries": ["gold stocks", "gold miners", "gold price"],
+    "reddit_keywords": ["gold", "GDX", "gold miners", "Newmont", "Barrick"],
+    "basket": { "etf": "GDX", "stocks": ["NEM", "GOLD", "AEM", "FNV", "WPM"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "lithium-battery",
+    "name": "Lithium & EV Battery",
+    "category": "Materials",
+    "wikipedia_articles": ["Lithium", "Lithium-ion battery", "Electric battery"],
+    "gtrends_queries": ["lithium stocks", "battery stocks", "lithium price"],
+    "reddit_keywords": ["lithium", "battery", "ALB", "Albemarle", "LIT"],
+    "basket": { "etf": "LIT", "stocks": ["ALB", "SQM", "LAC", "PLL", "ENVX"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "electric-vehicles",
+    "name": "Electric Vehicles",
+    "category": "Consumer",
+    "wikipedia_articles": ["Electric vehicle", "Tesla, Inc.", "Electric car"],
+    "gtrends_queries": ["ev stocks", "electric vehicle stocks", "tesla stock"],
+    "reddit_keywords": ["EV", "Tesla", "TSLA", "RIVN", "electric vehicle"],
+    "basket": { "etf": "DRIV", "stocks": ["TSLA", "RIVN", "LCID", "BYDDY", "LI"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "defense",
+    "name": "Defense",
+    "category": "Industrials",
+    "wikipedia_articles": ["Arms industry", "Defense contractor", "Military technology"],
+    "gtrends_queries": ["defense stocks", "defense etf", "military stocks"],
+    "reddit_keywords": ["defense", "ITA", "Lockheed", "Raytheon", "defense stocks"],
+    "basket": { "etf": "ITA", "stocks": ["LMT", "RTX", "GD", "NOC", "LHX"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "drones",
+    "name": "Drones",
+    "category": "Industrials",
+    "wikipedia_articles": ["Unmanned aerial vehicle", "Drone warfare", "Quadcopter"],
+    "gtrends_queries": ["drone stocks", "drone companies", "uav stocks"],
+    "reddit_keywords": ["drone", "drones", "AVAV", "Kratos", "AeroVironment"],
+    "basket": { "etf": null, "stocks": ["AVAV", "KTOS", "ONDS", "RCAT", "UMAC"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "space",
+    "name": "Space",
+    "category": "Industrials",
+    "wikipedia_articles": ["Space industry", "SpaceX", "Satellite"],
+    "gtrends_queries": ["space stocks", "space economy stocks", "rocket stocks"],
+    "reddit_keywords": ["space", "RKLB", "Rocket Lab", "satellite", "ASTS"],
+    "basket": { "etf": "ARKX", "stocks": ["RKLB", "LUNR", "RDW", "ASTS", "PL"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "cybersecurity",
+    "name": "Cybersecurity",
+    "category": "Technology",
+    "wikipedia_articles": ["Computer security", "Cyberattack", "Endpoint security"],
+    "gtrends_queries": ["cybersecurity stocks", "cyber security stocks", "hack etf"],
+    "reddit_keywords": ["cybersecurity", "cyber", "CRWD", "PANW", "CrowdStrike"],
+    "basket": { "etf": "CIBR", "stocks": ["CRWD", "PANW", "ZS", "FTNT", "NET"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "quantum-computing",
+    "name": "Quantum Computing",
+    "category": "Technology",
+    "wikipedia_articles": ["Quantum computing", "Qubit", "Quantum supremacy"],
+    "gtrends_queries": ["quantum computing stocks", "quantum stocks", "ionq stock"],
+    "reddit_keywords": ["quantum", "IONQ", "RGTI", "QBTS", "quantum computing"],
+    "basket": { "etf": "QTUM", "stocks": ["IONQ", "RGTI", "QBTS", "QUBT", "ARQQ"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "robotics-humanoids",
+    "name": "Robotics & Humanoids",
+    "category": "Technology",
+    "wikipedia_articles": ["Robotics", "Humanoid robot", "Industrial robot"],
+    "gtrends_queries": ["robotics stocks", "humanoid robot stocks", "robot stocks"],
+    "reddit_keywords": ["robotics", "humanoid", "robot", "Tesla bot", "BOTZ"],
+    "basket": { "etf": "BOTZ", "stocks": ["ISRG", "ABB", "TER", "ROK", "SERV"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "glp1-obesity",
+    "name": "GLP-1 & Obesity Drugs",
+    "category": "Healthcare",
+    "wikipedia_articles": ["Glucagon-like peptide-1", "Anti-obesity medication", "Semaglutide"],
+    "gtrends_queries": ["glp-1 stocks", "obesity drug stocks", "ozempic stock"],
+    "reddit_keywords": ["GLP-1", "Ozempic", "obesity", "Wegovy", "Eli Lilly"],
+    "basket": { "etf": "SLIM", "stocks": ["LLY", "NVO", "AMGN", "VKTX", "ZBH"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "biotech-gene-editing",
+    "name": "Biotech & Gene Editing",
+    "category": "Healthcare",
+    "wikipedia_articles": ["Gene therapy", "CRISPR", "Biotechnology"],
+    "gtrends_queries": ["biotech stocks", "gene editing stocks", "crispr stocks"],
+    "reddit_keywords": ["biotech", "CRISPR", "gene editing", "CRSP", "NTLA"],
+    "basket": { "etf": "XBI", "stocks": ["CRSP", "NTLA", "BEAM", "VRTX", "REGN"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "medical-devices",
+    "name": "Medical Devices",
+    "category": "Healthcare",
+    "wikipedia_articles": ["Medical device", "Health technology", "Implant (medicine)"],
+    "gtrends_queries": ["medical device stocks", "medtech stocks", "ihi etf"],
+    "reddit_keywords": ["medical devices", "medtech", "ISRG", "Medtronic", "Intuitive"],
+    "basket": { "etf": "IHI", "stocks": ["ISRG", "MDT", "SYK", "BSX", "ABT"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "homebuilders",
+    "name": "Homebuilders",
+    "category": "Consumer",
+    "wikipedia_articles": ["Home construction", "Real estate development", "Residential area"],
+    "gtrends_queries": ["homebuilder stocks", "housing stocks", "xhb etf"],
+    "reddit_keywords": ["homebuilders", "housing", "DHI", "Lennar", "XHB"],
+    "basket": { "etf": "XHB", "stocks": ["DHI", "LEN", "PHM", "NVR", "TOL"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "data-center-reits",
+    "name": "REITs & Data Center REITs",
+    "category": "Real Estate",
+    "wikipedia_articles": ["Real estate investment trust", "Data center", "Colocation centre"],
+    "gtrends_queries": ["data center reit", "reit stocks", "data center reits"],
+    "reddit_keywords": ["REIT", "data center REIT", "DLR", "Equinix", "reits"],
+    "basket": { "etf": "VNQ", "stocks": ["DLR", "EQIX", "AMT", "PLD", "IRM"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "regional-banks",
+    "name": "Regional Banks",
+    "category": "Financials",
+    "wikipedia_articles": ["Community bank", "Savings and loan association", "Bank"],
+    "gtrends_queries": ["regional bank stocks", "bank stocks", "kre etf"],
+    "reddit_keywords": ["regional banks", "KRE", "regional bank", "banks", "Fifth Third"],
+    "basket": { "etf": "KRE", "stocks": ["RF", "KEY", "CFG", "HBAN", "FITB"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "fintech-payments",
+    "name": "Fintech & Payments",
+    "category": "Financials",
+    "wikipedia_articles": ["Financial technology", "Payment", "Digital wallet"],
+    "gtrends_queries": ["fintech stocks", "payment stocks", "fintech etf"],
+    "reddit_keywords": ["fintech", "payments", "PYPL", "PayPal", "SoFi"],
+    "basket": { "etf": "FINX", "stocks": ["PYPL", "XYZ", "FI", "GPN", "SOFI"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "bitcoin-miners",
+    "name": "Bitcoin & Crypto Miners",
+    "category": "Crypto",
+    "wikipedia_articles": ["Bitcoin", "Bitcoin mining", "Cryptocurrency"],
+    "gtrends_queries": ["bitcoin stocks", "crypto mining stocks", "bitcoin miners"],
+    "reddit_keywords": ["bitcoin", "BTC", "MARA", "RIOT", "crypto miners"],
+    "basket": { "etf": "WGMI", "stocks": ["MARA", "RIOT", "CLSK", "MSTR", "CIFR"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "ethereum-defi",
+    "name": "Ethereum & DeFi",
+    "category": "Crypto",
+    "wikipedia_articles": ["Ethereum", "Decentralized finance", "Smart contract"],
+    "gtrends_queries": ["ethereum stocks", "defi stocks", "ethereum etf"],
+    "reddit_keywords": ["ethereum", "ETH", "DeFi", "Coinbase", "Ether"],
+    "basket": { "etf": "ETHA", "stocks": ["COIN", "HOOD", "BMNR", "BTBT", "GLXY"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "stablecoins",
+    "name": "Stablecoins",
+    "category": "Crypto",
+    "wikipedia_articles": ["Stablecoin", "Tether (cryptocurrency)", "USD Coin"],
+    "gtrends_queries": ["stablecoin stocks", "circle stock", "stablecoin"],
+    "reddit_keywords": ["stablecoin", "USDC", "Circle", "CRCL", "Tether"],
+    "basket": { "etf": null, "stocks": ["CRCL", "COIN", "HOOD", "PYPL", "V"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "india-equities",
+    "name": "India Equities",
+    "category": "International",
+    "wikipedia_articles": ["Economy of India", "BSE SENSEX", "NIFTY 50"],
+    "gtrends_queries": ["india stocks", "india etf", "indian stock market"],
+    "reddit_keywords": ["India", "INDA", "Indian stocks", "Sensex", "Nifty"],
+    "basket": { "etf": "INDA", "stocks": ["INFY", "HDB", "IBN", "WIT", "RDY"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "china-tech",
+    "name": "China Tech",
+    "category": "International",
+    "wikipedia_articles": ["Technology of China", "Alibaba Group", "Tencent"],
+    "gtrends_queries": ["china tech stocks", "chinese stocks", "kweb etf"],
+    "reddit_keywords": ["China tech", "BABA", "KWEB", "Alibaba", "Chinese stocks"],
+    "basket": { "etf": "KWEB", "stocks": ["BABA", "PDD", "JD", "BIDU", "TCEHY"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "japan-equities",
+    "name": "Japan Equities",
+    "category": "International",
+    "wikipedia_articles": ["Economy of Japan", "Nikkei 225", "Tokyo Stock Exchange"],
+    "gtrends_queries": ["japan stocks", "japan etf", "nikkei"],
+    "reddit_keywords": ["Japan", "EWJ", "Nikkei", "Japanese stocks", "Japan equities"],
+    "basket": { "etf": "EWJ", "stocks": ["TM", "SONY", "MUFG", "HMC", "SMFG"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "latin-america",
+    "name": "Latin America",
+    "category": "International",
+    "wikipedia_articles": ["Economy of Latin America", "Economy of Brazil", "Economy of Mexico"],
+    "gtrends_queries": ["latin america stocks", "brazil stocks", "ilf etf"],
+    "reddit_keywords": ["Latin America", "ILF", "Brazil", "EWZ", "Mexico"],
+    "basket": { "etf": "ILF", "stocks": ["VALE", "NU", "MELI", "PBR", "ITUB"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "agriculture-fertilizer",
+    "name": "Agriculture & Fertilizer",
+    "category": "Materials",
+    "wikipedia_articles": ["Fertilizer", "Agriculture", "Potash"],
+    "gtrends_queries": ["fertilizer stocks", "agriculture stocks", "moo etf"],
+    "reddit_keywords": ["fertilizer", "agriculture", "Nutrien", "Mosaic", "potash"],
+    "basket": { "etf": "MOO", "stocks": ["NTR", "MOS", "CF", "CTVA", "ADM"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "water",
+    "name": "Water",
+    "category": "Infrastructure",
+    "wikipedia_articles": ["Water industry", "Water supply", "Desalination"],
+    "gtrends_queries": ["water stocks", "water etf", "water utility stocks"],
+    "reddit_keywords": ["water stocks", "PHO", "Xylem", "American Water", "water utility"],
+    "basket": { "etf": "PHO", "stocks": ["XYL", "AWK", "WTRG", "ECL", "PNR"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "shipping-tankers",
+    "name": "Shipping & Tankers",
+    "category": "Industrials",
+    "wikipedia_articles": ["Tanker (ship)", "Maritime transport", "Container ship"],
+    "gtrends_queries": ["shipping stocks", "tanker stocks", "dry bulk stocks"],
+    "reddit_keywords": ["shipping", "tankers", "Frontline", "ZIM", "dry bulk"],
+    "basket": { "etf": "BOAT", "stocks": ["FRO", "STNG", "ZIM", "INSW", "GSL"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "airlines-travel",
+    "name": "Airlines & Travel",
+    "category": "Consumer",
+    "wikipedia_articles": ["Airline", "Air travel", "Low-cost carrier"],
+    "gtrends_queries": ["airline stocks", "travel stocks", "jets etf"],
+    "reddit_keywords": ["airlines", "JETS", "Delta", "travel stocks", "United Airlines"],
+    "basket": { "etf": "JETS", "stocks": ["DAL", "UAL", "LUV", "AAL", "BKNG"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "luxury",
+    "name": "Luxury",
+    "category": "Consumer",
+    "wikipedia_articles": ["Luxury goods", "LVMH", "Fashion"],
+    "gtrends_queries": ["luxury stocks", "luxury goods stocks", "lvmh stock"],
+    "reddit_keywords": ["luxury", "LVMUY", "luxury goods", "Hermes", "Ferrari"],
+    "basket": { "etf": null, "stocks": ["LVMUY", "RACE", "CFRUY", "TPR", "RL"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "streaming-media",
+    "name": "Streaming & Media",
+    "category": "Communications",
+    "wikipedia_articles": ["Streaming media", "Streaming television", "Over-the-top media service"],
+    "gtrends_queries": ["streaming stocks", "media stocks", "netflix stock"],
+    "reddit_keywords": ["streaming", "NFLX", "Netflix", "media stocks", "Disney"],
+    "basket": { "etf": "FCOM", "stocks": ["NFLX", "DIS", "WBD", "SPOT", "ROKU"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "gaming",
+    "name": "Gaming",
+    "category": "Communications",
+    "wikipedia_articles": ["Video game industry", "Video game", "Esports"],
+    "gtrends_queries": ["gaming stocks", "video game stocks", "esports stocks"],
+    "reddit_keywords": ["gaming", "video games", "TTWO", "Take-Two", "esports"],
+    "basket": { "etf": "ESPO", "stocks": ["TTWO", "EA", "RBLX", "NTES", "U"] },
+    "date_added": "2026-06-13"
+  },
+  {
+    "id": "rate-cut-smallcaps",
+    "name": "Rate-Cut Beneficiaries (Small Caps)",
+    "category": "Macro",
+    "wikipedia_articles": ["Russell 2000 Index", "Small-cap stock", "Federal funds rate"],
+    "gtrends_queries": ["small cap stocks", "iwm etf", "russell 2000"],
+    "reddit_keywords": ["small caps", "IWM", "Russell 2000", "small cap", "rate cuts"],
+    "basket": { "etf": "IWM", "stocks": ["IJR", "VTWO", "CALF", "AVUV", "VB"] },
+    "date_added": "2026-06-13"
+  }
+]

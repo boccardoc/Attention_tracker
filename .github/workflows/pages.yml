@@ -1,5 +1,6 @@
 name: deploy-pages
 
+# Publishes to GitHub Pages (Pages source must be set to "GitHub Actions" in repo settings).
 # Builds the dashboard as a static site and publishes it to GitHub Pages, so it can be
 # opened from any device (including an iPad) at:
 #   https://<owner>.github.io/attention_tracker/

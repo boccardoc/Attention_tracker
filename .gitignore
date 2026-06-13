@@ -5,3 +5,8 @@ node_modules/
 .next/
 data/*.db
 *.log
+web/next-env.d.ts
+web/.next/
+*.tsbuildinfo
+data/*.db-shm
+data/*.db-wal

@@ -15,7 +15,10 @@ export default function Page() {
   const [selected, setSelected] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/scores")
+    // In the static (Pages) build the site is served under BASE_PATH, so the
+    // pre-rendered /api/scores file lives there too. Empty in dev/node-server mode.
+    const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+    fetch(`${base}/api/scores`)
       .then((r) => r.json())
       .then((d) => (d.error ? setError(d.error) : setData(d)))
       .catch((e) => setError(String(e)));

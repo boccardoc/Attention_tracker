@@ -10,3 +10,4 @@ web/.next/
 *.tsbuildinfo
 data/*.db-shm
 data/*.db-wal
+web/out/

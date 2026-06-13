@@ -1,0 +1,76 @@
+name: deploy-pages
+
+# Builds the dashboard as a static site and publishes it to GitHub Pages, so it can be
+# opened from any device (including an iPad) at:
+#   https://<owner>.github.io/attention_tracker/
+#
+# The data is baked into the build. By default it uses seed_demo.py (synthetic) so the
+# site works with no API keys; swap that step for the real collector once you have a
+# populated data/attention.db.
+
+on:
+  push:
+    branches:
+      - claude/attention-rotation-monitor-dmgxsk
+    paths:
+      - "web/**"
+      - "collector/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install collector deps
+        run: pip install -r collector/requirements.txt
+
+      - name: Populate database (demo data)
+        # Replace with `python collector/backfill.py && python collector/collect.py`
+        # (and Reddit secrets) to publish real data instead.
+        run: python collector/seed_demo.py
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+      - name: Install web deps
+        working-directory: web
+        run: npm ci
+
+      - name: Build static site
+        working-directory: web
+        env:
+          STATIC: "1"
+          BASE_PATH: "/attention_tracker"
+        run: npm run build
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

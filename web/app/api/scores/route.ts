@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { getScores } from "@/app/lib/db";
 
-// Always read fresh from SQLite (the collector updates it out of band).
-export const dynamic = "force-dynamic";
+// force-static so the route can be pre-rendered into a plain JSON file during the
+// static export (GitHub Pages) build. In `next dev` it is still recomputed on request,
+// and a node-server deployment can change this to "force-dynamic" for live reads.
+export const dynamic = "force-static";
 
 export function GET() {
   try {

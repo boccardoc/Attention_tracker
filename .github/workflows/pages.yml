@@ -37,6 +37,47 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Fail fast, and in plain English, when the repo has no Pages site. Without this
+      # the run burns a full build and then dies inside configure-pages with the opaque
+      # "Get Pages site failed: Not Found" / "Resource not accessible by integration".
+      #
+      # The usual cause is a visibility change: switching the repo public -> private
+      # DISABLES its Pages site, and switching back to public does NOT restore the
+      # "Source: GitHub Actions" setting -- it has to be re-selected by hand afterwards.
+      - name: Preflight — is GitHub Pages enabled?
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          status=$(curl -sS -o /tmp/pages.json -w '%{http_code}' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pages" || echo 000)
+
+          if [ "$status" = "200" ]; then
+            echo "Pages is enabled. Deploying to: $(python3 -c 'import json;print(json.load(open("/tmp/pages.json")).get("html_url",""))')"
+            exit 0
+          fi
+
+          echo "::error title=GitHub Pages is not enabled::HTTP $status from the Pages API."
+          cat <<'MSG'
+          ─────────────────────────────────────────────────────────────────────
+          This repository has no GitHub Pages site, so there is nothing to
+          deploy to. The build itself is fine — do not go looking for a code bug.
+
+          Fix it in the browser (an Actions token cannot create a Pages site;
+          that needs repo-admin rights):
+
+            1. Settings → General → Change visibility → Public
+            2. Settings → Pages → Source → "GitHub Actions"
+
+          Order matters: a visibility change WIPES the Source setting, so step 2
+          must come after step 1.
+
+          Then re-run this workflow (Actions → deploy-pages → Run workflow).
+          ─────────────────────────────────────────────────────────────────────
+          MSG
+          exit 1
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -75,11 +116,11 @@ jobs:
           BASE_PATH: "/Attention_tracker"
         run: npm run build
 
+      # NOTE: no `enablement: true` here. Creating a Pages site requires admin rights
+      # that GITHUB_TOKEN does not have, so it could never self-heal — all it did was
+      # replace a readable error with "Resource not accessible by integration". The
+      # preflight step above reports the real problem instead.
       - uses: actions/configure-pages@v5
-        with:
-          # Auto-create/enable the Pages site if it's missing (e.g. reset by a
-          # private->public visibility change) instead of failing the run.
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web/out

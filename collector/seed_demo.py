@@ -25,7 +25,7 @@ from sources import prices as prices_mod
 random.seed(7)
 TAXONOMY = Path(__file__).parent / "taxonomy.json"
 DAYS = 180
-END = date(2026, 6, 12)
+END = date.today()  # always ends "today" so a fresh run/redeploy shows current data
 START = END - timedelta(days=DAYS - 1)
 
 

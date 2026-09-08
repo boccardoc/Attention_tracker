@@ -4,6 +4,7 @@ import path from "path";
 import type {
   Basket,
   BasketQuote,
+  ConcentrationPoint,
   HistoryPoint,
   PricePoint,
   ScoresResponse,
@@ -73,8 +74,9 @@ export function getScores(): ScoresResponse {
     const asOf = asOfRow?.d ?? null;
 
     const historyStmt = db.prepare(
-      `SELECT date, research_z, speculative_z,
-              research_velocity_7d, speculative_velocity_7d
+      `SELECT date, research_z, speculative_z, sentiment_z,
+              research_velocity_7d, speculative_velocity_7d, sentiment_velocity_7d,
+              share_pct
        FROM scores WHERE theme_id = ?
        ORDER BY date DESC LIMIT ?`,
     );
@@ -119,7 +121,17 @@ export function getScores(): ScoresResponse {
       };
     });
 
-    return { asOf, themes: out };
+    const concentration = (
+      db
+        .prepare(
+          `SELECT date, hhi, top5_share,
+                  breadth_early, breadth_crowded, breadth_froth, breadth_dormant
+           FROM market_concentration ORDER BY date DESC LIMIT ?`,
+        )
+        .all(HISTORY_DAYS) as ConcentrationPoint[]
+    ).reverse();
+
+    return { asOf, themes: out, concentration };
   } finally {
     db.close();
   }

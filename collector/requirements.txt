@@ -2,4 +2,5 @@ requests>=2.31
 pytrends>=4.9.2
 praw>=7.7
 yfinance>=0.2.40
+vaderSentiment>=3.3.2
 pytest>=8.0

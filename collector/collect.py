@@ -24,7 +24,7 @@ from pathlib import Path
 
 import db
 import normalize
-from sources import gtrends, prices, reddit, wikipedia
+from sources import gtrends, prices, reddit, sentiment, wikipedia
 
 logging.basicConfig(
     level=logging.INFO,
@@ -77,17 +77,25 @@ def collect_gtrends(conn, themes, as_of: date) -> None:
 
 
 def collect_reddit(conn, themes, as_of: date) -> None:
-    """Fetch posts once, match every theme, write unique-author counts for the as-of day."""
+    """Fetch posts once, then derive BOTH volume and tone from that single cache.
+
+    Volume (unique authors) and sentiment (mean VADER compound) are written as separate
+    sources so they stay independently interpretable; neither costs an extra API call.
+    """
     cache = reddit.fetch_post_cache(as_of)
     rows = []
     for t in themes:
         if cache:
-            val = float(reddit.count_unique_authors(cache, t["reddit_keywords"]))
+            volume = float(reddit.count_unique_authors(cache, t["reddit_keywords"]))
+            scored = sentiment.score_theme(cache, t["reddit_keywords"])
+            tone = scored["compound"] if scored else None
         else:
-            val = None  # fetch failed entirely -> NULL for all themes
-        rows.append((as_of.isoformat(), t["id"], "reddit", val))
+            volume = tone = None  # fetch failed entirely -> NULL for all themes
+        rows.append((as_of.isoformat(), t["id"], "reddit", volume))
+        rows.append((as_of.isoformat(), t["id"], "reddit_sentiment", tone))
     db.upsert_raw(conn, rows)
-    log.info("reddit: wrote %d rows", len(rows))
+    scored_n = sum(1 for r in rows if r[2] == "reddit_sentiment" and r[3] is not None)
+    log.info("reddit: wrote %d rows (%d themes with sentiment)", len(rows), scored_n)
 
 
 def collect_prices(conn, themes, as_of: date) -> None:
@@ -109,20 +117,40 @@ def recompute_scores(conn, themes, as_of: date | None = None) -> int:
     every date is written (used by backfill).
     """
     non_null_research = 0
-    for t in themes:
-        wiki = db.fetch_source_series(conn, t["id"], "wikipedia")
-        gt = db.fetch_source_series(conn, t["id"], "gtrends")
-        rd = db.fetch_source_series(conn, t["id"], "reddit")
-        scored = normalize.compute_theme_scores(wiki, gt, rd)
 
-        items = scored.items()
+    # Pull every theme's raw series once: per-theme z-scores need them, and the
+    # cross-theme share calculation needs them all together.
+    raw: dict[tuple[str, str], list] = {}
+    for t in themes:
+        for source in ("wikipedia", "gtrends", "reddit", "reddit_sentiment"):
+            raw[(t["id"], source)] = db.fetch_source_series(conn, t["id"], source)
+
+    # Absolute, cross-theme view: {date: {theme_id: share}}. Sentiment is excluded --
+    # it is a tone, not a quantity of attention, so it must not affect share.
+    shares = normalize.attention_share({
+        k: v for k, v in raw.items() if k[1] in normalize.SHARE_WEIGHTS
+    })
+
+    scored_by_theme: dict[str, dict[str, dict]] = {}
+    for t in themes:
+        scored = normalize.compute_theme_scores(
+            raw[(t["id"], "wikipedia")],
+            raw[(t["id"], "gtrends")],
+            raw[(t["id"], "reddit")],
+            raw[(t["id"], "reddit_sentiment")],
+        )
+        scored_by_theme[t["id"]] = scored
+
+        items = list(scored.items())
         if as_of is not None:
             key = as_of.isoformat()
             items = [(key, scored[key])] if key in scored else []
 
         rows = [
             (d, t["id"], s["research_z"], s["speculative_z"],
-             s["research_velocity_7d"], s["speculative_velocity_7d"])
+             s["research_velocity_7d"], s["speculative_velocity_7d"],
+             s["sentiment_z"], s["sentiment_velocity_7d"],
+             shares.get(d, {}).get(t["id"]))
             for d, s in items
         ]
         if rows:
@@ -131,7 +159,32 @@ def recompute_scores(conn, themes, as_of: date | None = None) -> int:
         latest_key = as_of.isoformat() if as_of else (max(scored) if scored else None)
         if latest_key and scored.get(latest_key, {}).get("research_z") is not None:
             non_null_research += 1
+
+    _write_concentration(conn, scored_by_theme, shares, as_of)
     return non_null_research
+
+
+def _write_concentration(conn, scored_by_theme, shares, as_of: date | None) -> None:
+    """Market-wide daily rollup: how concentrated is attention, and how broad is it."""
+    dates = [as_of.isoformat()] if as_of is not None else sorted(shares)
+    rows = []
+    for d in dates:
+        day_shares = shares.get(d)
+        if not day_shares:
+            continue
+        idx = normalize.concentration_index(day_shares)
+        day_scores = {
+            tid: scored[d] for tid, scored in scored_by_theme.items() if d in scored
+        }
+        breadth = normalize.quadrant_breadth(day_scores)
+        rows.append((
+            d, idx["hhi"], idx["top5_share"],
+            breadth["early"], breadth["crowded"],
+            breadth["froth"], breadth["dormant"],
+        ))
+    if rows:
+        db.upsert_concentration(conn, rows)
+        log.info("concentration: wrote %d day(s)", len(rows))
 
 
 # ------------------------------------------------------------------------------- main

@@ -12,7 +12,13 @@ import {
   YAxis,
 } from "recharts";
 import type { ThemeData } from "../lib/types";
-import { divergenceCallout, fmtPct, fmtZ } from "../lib/ui";
+import {
+  divergenceCallout,
+  fmtPct,
+  fmtShare,
+  fmtZ,
+  sentimentLabel,
+} from "../lib/ui";
 
 export default function ThemeDetail({
   themes,
@@ -37,6 +43,7 @@ export default function ThemeDetail({
         date: h.date,
         research_z: h.research_z,
         speculative_z: h.speculative_z,
+        sentiment_z: h.sentiment_z,
         priceIdx,
       };
     });
@@ -67,7 +74,12 @@ export default function ThemeDetail({
         <span className="text-xs text-muted">added {t.date_added}</span>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
+        <Stat
+          label="share of attention"
+          value={fmtShare(t.latest?.share_pct)}
+          hint="of all 40 themes today"
+        />
         <Stat label="research z" value={fmtZ(t.latest?.research_z)} />
         <Stat
           label="speculative z"
@@ -75,8 +87,13 @@ export default function ThemeDetail({
           hint={t.latest?.speculative_z == null ? "warming up" : undefined}
         />
         <Stat
-          label="research velocity 7d"
-          value={fmtZ(t.latest?.research_velocity_7d)}
+          label="reddit tone"
+          value={sentimentLabel(t.latest?.sentiment_z)}
+          hint={
+            t.latest?.sentiment_z == null
+              ? "too few posts"
+              : `z ${fmtZ(t.latest.sentiment_z)} · low confidence`
+          }
         />
       </div>
 
@@ -137,6 +154,19 @@ export default function ThemeDetail({
                 strokeWidth={2}
                 connectNulls
               />
+              {/* Tone is drawn thinner and dashed to read as the low-confidence
+                  overlay it is, not as a peer of the two attention channels. */}
+              <Line
+                yAxisId="z"
+                type="monotone"
+                dataKey="sentiment_z"
+                name="sentiment z (Reddit tone)"
+                stroke="#a78bfa"
+                strokeDasharray="5 3"
+                dot={false}
+                strokeWidth={1.5}
+                connectNulls
+              />
               {t.basket.etf && (
                 <Line
                   yAxisId="price"
@@ -156,6 +186,7 @@ export default function ThemeDetail({
         <div className="flex flex-wrap gap-4 px-2 pb-1 text-[11px] text-muted">
           <Legend color="#60a5fa" label="research z" />
           <Legend color="#f43f5e" label="speculative z" />
+          <Legend color="#a78bfa" label="sentiment z (Reddit tone, low confidence)" />
           {t.basket.etf && <Legend color="#8b93a7" label={`${t.basket.etf} price (idx)`} />}
         </div>
       </div>

@@ -21,6 +21,58 @@ export function categoryColor(category: string): string {
   return CATEGORY_COLORS[category] ?? "#94a3b8";
 }
 
+// The 13 categories are too unevenly sized to average (Real Estate, Infrastructure and
+// Macro hold a single theme each, so their "average" is just that theme). These coarser
+// blocks hold 3-9 themes apiece and are what the macro rollup aggregates over; the
+// categories above are still used for point colour.
+export const MACRO_BLOCKS: Record<string, string> = {
+  Energy: "Energy & Power",
+  Infrastructure: "Energy & Power",
+  Technology: "Technology & AI",
+  Communications: "Technology & AI",
+  Materials: "Materials & Industrials",
+  Industrials: "Materials & Industrials",
+  Healthcare: "Healthcare",
+  Financials: "Financials & Crypto",
+  Crypto: "Financials & Crypto",
+  "Real Estate": "Financials & Crypto",
+  Consumer: "Consumer & Global",
+  International: "Consumer & Global",
+  Macro: "Consumer & Global",
+};
+
+export const BLOCK_COLORS: Record<string, string> = {
+  "Energy & Power": "#f59e0b",
+  "Technology & AI": "#60a5fa",
+  "Materials & Industrials": "#34d399",
+  Healthcare: "#22d3ee",
+  "Financials & Crypto": "#818cf8",
+  "Consumer & Global": "#f472b6",
+};
+
+export function macroBlock(category: string): string {
+  return MACRO_BLOCKS[category] ?? "Consumer & Global";
+}
+
+/** Sentiment is a low-confidence overlay, so it reads as a word, not a number. */
+export function sentimentLabel(z: number | null | undefined): string {
+  if (z === null || z === undefined) return "no read";
+  if (z >= 1) return "positive";
+  if (z <= -1) return "negative";
+  return "mixed";
+}
+
+export function sentimentColor(z: number | null | undefined): string {
+  if (z === null || z === undefined) return "#8b93a7";
+  if (z >= 1) return "#22c55e";
+  if (z <= -1) return "#f43f5e";
+  return "#8b93a7";
+}
+
+export function fmtShare(share: number | null | undefined): string {
+  return share === null || share === undefined ? "—" : `${(share * 100).toFixed(2)}%`;
+}
+
 export type Quadrant = "EARLY ROTATION" | "CROWDED CONSENSUS" | "FROTH / MEME" | "DORMANT";
 
 export function quadrant(researchZ: number, speculativeZ: number): Quadrant {

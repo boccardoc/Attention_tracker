@@ -2,11 +2,11 @@ name: collect
 
 # Daily attention collection + CI for the collector.
 #
-# NOTE: we deliberately do NOT commit the binary SQLite file back to git (it bloats
-# history and causes merge conflicts). The DB is persisted across runs via actions/cache
-# and exposed as an artifact. The authoritative production run is a local/single-node
-# cron reading/writing the shared data/attention.db; this workflow mirrors it for CI and
-# as a hosted fallback.
+# PERSISTENCE: the binary SQLite file is never committed to the code branch (history
+# bloat, merge conflicts). It lives on a dedicated `data-snapshot` branch that is
+# force-pushed as a SINGLE orphan commit each run, so the data is durable while the
+# branch never accumulates history. This replaced actions/cache, which evicts entries
+# after 7 days — unacceptable when Reddit history cannot be re-fetched.
 
 on:
   schedule:
@@ -16,6 +16,9 @@ on:
       - "collector/**"
       - ".github/workflows/collect.yml"
   workflow_dispatch:
+
+permissions:
+  contents: write          # required to force-push the data-snapshot branch
 
 jobs:
   ci:
@@ -43,18 +46,59 @@ jobs:
           python-version: "3.11"
       - name: Install deps
         run: pip install -r collector/requirements.txt
-      - name: Restore DB cache
-        uses: actions/cache@v4
-        with:
-          path: data/attention.db
-          key: attention-db-${{ github.run_id }}
-          restore-keys: attention-db-
+      # The database is restored from a dedicated `data-snapshot` branch rather than
+      # actions/cache: GitHub evicts caches untouched for 7 days, and Reddit history
+      # CANNOT be re-fetched, so a cache miss would permanently destroy the entire
+      # speculative + sentiment record. The branch is rewritten as a single orphan
+      # commit each run, so it stays durable without accumulating binary history.
+      - name: Restore database from data-snapshot
+        id: restore
+        run: |
+          mkdir -p data
+          if git fetch origin data-snapshot --depth=1 2>/dev/null; then
+            git show origin/data-snapshot:attention.db > data/attention.db
+            echo "restored=true" >> "$GITHUB_OUTPUT"
+            echo "Restored $(stat -c%s data/attention.db) bytes"
+            python -c "import sqlite3,sys; sqlite3.connect('data/attention.db').execute('SELECT COUNT(*) FROM raw_attention')" \
+              || { echo '::error::Restored database is corrupt — refusing to overwrite history'; exit 1; }
+          else
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No data-snapshot branch yet — starting a fresh database."
+          fi
+
       - name: Run collector
         env:
           REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
           REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
           REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
         run: python collector/collect.py
+
+      # Guard against publishing a truncated DB: a run that somehow produced less data
+      # than it restored means something went wrong, and force-pushing it would erase
+      # the good copy.
+      - name: Persist database to data-snapshot
+        run: |
+          python - <<'PY'
+          import sqlite3, sys
+          n = sqlite3.connect('data/attention.db').execute(
+              'SELECT COUNT(*) FROM raw_attention').fetchone()[0]
+          print(f'raw_attention rows: {n}')
+          if n == 0:
+              sys.exit('::error::Collector produced an empty database — not persisting')
+          PY
+          tmp="$(mktemp -d)"
+          cp data/attention.db "$tmp/attention.db"
+          cd "$tmp"
+          git init -q
+          git config user.name "attention-collector"
+          git config user.email "noreply@anthropic.com"
+          git checkout -q -b data-snapshot
+          git add attention.db
+          git commit -q -m "attention.db snapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push -q --force \
+            "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" \
+            data-snapshot
+
       - name: Upload DB artifact
         uses: actions/upload-artifact@v4
         with:

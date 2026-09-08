@@ -43,10 +43,20 @@ jobs:
       - name: Install collector deps
         run: pip install -r collector/requirements.txt
 
-      - name: Populate database (demo data)
-        # Replace with `python collector/backfill.py && python collector/collect.py`
-        # (and Reddit secrets) to publish real data instead.
-        run: python collector/seed_demo.py
+      # Publish REAL data when the collector has produced any, otherwise fall back to
+      # the synthetic demo so the site is never broken. The cutover is automatic: the
+      # first successful collect.yml run creates data-snapshot and this step starts
+      # using it, with no edit to this workflow.
+      - name: Populate database
+        run: |
+          mkdir -p data
+          if git fetch origin data-snapshot --depth=1 2>/dev/null; then
+            git show origin/data-snapshot:attention.db > data/attention.db
+            echo "Publishing REAL collected data ($(stat -c%s data/attention.db) bytes)"
+          else
+            echo "::notice::No data-snapshot branch yet — publishing synthetic demo data."
+            python collector/seed_demo.py
+          fi
 
       - uses: actions/setup-node@v4
         with:

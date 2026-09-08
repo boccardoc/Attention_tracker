@@ -13,7 +13,15 @@ import {
   YAxis,
 } from "recharts";
 import type { ThemeData } from "../lib/types";
-import { CATEGORY_COLORS, categoryColor, fmtZ, quadrant } from "../lib/ui";
+import {
+  CATEGORY_COLORS,
+  categoryColor,
+  fmtShare,
+  fmtZ,
+  quadrant,
+  sentimentColor,
+  sentimentLabel,
+} from "../lib/ui";
 
 const TRAIL_DAYS = 14;
 
@@ -25,6 +33,9 @@ interface Pt {
   x: number; // speculative_z
   y: number; // research_z
   r: number; // radius from |combined velocity|
+  ring: string; // outline colour = Reddit tone (separate channel, never blended into x/y)
+  tone: string;
+  share: number | null;
 }
 
 export default function RotationMap({
@@ -57,6 +68,9 @@ export default function RotationMap({
         x: l.speculative_z,
         y: l.research_z,
         r: 4 + Math.min(14, vel * 4), // size by 7d combined velocity (abs)
+        ring: sentimentColor(l.sentiment_z),
+        tone: sentimentLabel(l.sentiment_z),
+        share: l.share_pct,
       });
     }
     let maxAbs = 2;
@@ -86,8 +100,10 @@ export default function RotationMap({
         r={payload.r}
         fill={payload.color}
         fillOpacity={active ? 0.95 : 0.7}
-        stroke={active ? "#fff" : payload.color}
-        strokeWidth={active ? 1.5 : 0}
+        // Ring encodes Reddit tone. It is an outline, not a position, precisely so
+        // sentiment never contaminates the two attention axes.
+        stroke={active ? "#fff" : payload.ring}
+        strokeWidth={active ? 2 : 1.5}
         style={{ cursor: "pointer" }}
         onClick={() => onSelect(payload.id)}
         onMouseEnter={() => setHovered(payload.id)}
@@ -156,6 +172,10 @@ export default function RotationMap({
                         <div className="mt-1">
                           research z {fmtZ(p.y)} · spec z {fmtZ(p.x)}
                         </div>
+                        <div className="text-muted">
+                          share {fmtShare(p.share)} · tone{" "}
+                          <span style={{ color: p.ring }}>{p.tone}</span>
+                        </div>
                         <div className="text-accent">{quadrant(p.y, p.x)}</div>
                       </div>
                     );
@@ -209,6 +229,26 @@ export default function RotationMap({
             <div className="mt-3 border-t border-edge pt-2 text-[11px] text-muted">
               point size = |7d combined velocity|. hover a point for its 14-day trail;
               click to open detail.
+            </div>
+            <div className="mt-2 border-t border-edge pt-2">
+              <div className="mb-1 text-[11px] font-semibold text-muted">
+                RING = REDDIT TONE
+              </div>
+              <div className="space-y-1">
+                {[
+                  ["#22c55e", "positive"],
+                  ["#8b93a7", "mixed / no read"],
+                  ["#f43f5e", "negative"],
+                ].map(([c, label]) => (
+                  <div key={label} className="flex items-center gap-2 text-[11px]">
+                    <span
+                      className="inline-block h-2.5 w-2.5 rounded-full border-2"
+                      style={{ borderColor: c, background: "transparent" }}
+                    />
+                    <span className="text-muted">{label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 

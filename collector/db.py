@@ -36,6 +36,19 @@ CREATE TABLE IF NOT EXISTS scores (
   PRIMARY KEY (date, theme_id)
 );
 
+-- Market-wide concentration, one row per day. Answers "is attention broadening or
+-- narrowing", which no per-theme z-score can express.
+CREATE TABLE IF NOT EXISTS market_concentration (
+  date             TEXT NOT NULL,
+  hhi              REAL,   -- 1/N = perfectly even .. 1.0 = all on one theme
+  top5_share       REAL,
+  breadth_early    INTEGER,
+  breadth_crowded  INTEGER,
+  breadth_froth    INTEGER,
+  breadth_dormant  INTEGER,
+  PRIMARY KEY (date)
+);
+
 -- prices is referenced by the dashboard (Phase 3) but absent from the spec schema;
 -- added here so the basket ETF overlay + movers price-change have a source.
 CREATE TABLE IF NOT EXISTS prices (
@@ -57,13 +70,38 @@ def db_path() -> Path:
     return Path(env).expanduser().resolve() if env else _DEFAULT_DB
 
 
+# Columns added to `scores` after the table first shipped. CREATE TABLE IF NOT EXISTS is
+# a no-op on an existing table, so these must be ALTERed in explicitly or an older DB
+# (e.g. the accrued Reddit history restored from the data-snapshot branch) would keep the
+# old shape and every write would fail.
+SCORES_ADDED_COLUMNS = {
+    "share_pct": "REAL",               # share of all themes' attention that day
+    "sentiment_z": "REAL",
+    "sentiment_velocity_7d": "REAL",
+}
+
+
+def migrate(conn: sqlite3.Connection) -> list[str]:
+    """Add any missing columns to existing tables. Returns the columns added."""
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(scores)")}
+    added = []
+    for col, coltype in SCORES_ADDED_COLUMNS.items():
+        if col not in existing:
+            conn.execute(f"ALTER TABLE scores ADD COLUMN {col} {coltype}")
+            added.append(col)
+    if added:
+        conn.commit()
+    return added
+
+
 def connect() -> sqlite3.Connection:
-    """Open the DB (creating parent dir + schema on first use)."""
+    """Open the DB (creating parent dir + schema on first use, then migrating)."""
     path = db_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(path))
     conn.execute("PRAGMA journal_mode=WAL;")
     conn.executescript(SCHEMA)
+    migrate(conn)
     return conn
 
 
@@ -78,12 +116,26 @@ def upsert_raw(conn: sqlite3.Connection, rows: list[tuple]) -> None:
 
 
 def upsert_scores(conn: sqlite3.Connection, rows: list[tuple]) -> None:
-    """rows: (date, theme_id, research_z, speculative_z, research_vel, spec_vel)."""
+    """rows: (date, theme_id, research_z, speculative_z, research_vel, spec_vel,
+    sentiment_z, sentiment_vel, share_pct)."""
     conn.executemany(
         "INSERT OR REPLACE INTO scores "
         "(date, theme_id, research_z, speculative_z, "
-        " research_velocity_7d, speculative_velocity_7d) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
+        " research_velocity_7d, speculative_velocity_7d, "
+        " sentiment_z, sentiment_velocity_7d, share_pct) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        rows,
+    )
+    conn.commit()
+
+
+def upsert_concentration(conn: sqlite3.Connection, rows: list[tuple]) -> None:
+    """rows: (date, hhi, top5_share, early, crowded, froth, dormant)."""
+    conn.executemany(
+        "INSERT OR REPLACE INTO market_concentration "
+        "(date, hhi, top5_share, breadth_early, breadth_crowded, "
+        " breadth_froth, breadth_dormant) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
         rows,
     )
     conn.commit()

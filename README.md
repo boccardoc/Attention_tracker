@@ -7,13 +7,26 @@ a minute:
 2. Is that attention **early-stage research** or **late-stage speculation**?
 3. What is the investable basket for each theme?
 
-Every theme is measured on **two independent attention channels**, each expressed as a
-z-score versus its own trailing 90 days — never blended into one number:
+Every theme is measured on **independent channels**, never blended into one number:
 
 - **research** (top-of-funnel, slow money) = Wikipedia pageviews + Google Trends
 - **speculative** (in-the-trade, fast money) = Reddit unique-author mentions
+- **sentiment** (low-confidence overlay) = VADER tone of the matching Reddit posts
 
-The product is the **gap and divergence** between the two channels.
+The first two are z-scores versus each theme's own trailing 90 days, and the product is
+the **gap and divergence** between them.
+
+### Two questions, two different measures — do not confuse them
+
+| Question | Measure | Why |
+|---|---|---|
+| *What is unusual for this theme?* | `research_z` / `speculative_z` | Normalised against the theme's **own** history |
+| *Where is attention concentrated?* | `share_pct` | **Absolute** share of all themes' attention |
+
+A z-score cannot answer the second question, and this trips people up constantly: a theme
+averaging 5 Reddit authors/day that ticks to 9 scores `z ≈ +4`, while one averaging 5,000
+sits at `z = 0`. The **Concentration** view exists precisely because z-scores are blind to
+absolute magnitude.
 
 ```
 attention_tracker/
@@ -69,7 +82,11 @@ cd ../web && npm run dev
 from SQLite and contains no mock data.
 
 ## Dashboard views
-- **Rotation Map** (default): scatter of `speculative_z` (x) vs `research_z` (y), colored
+- **Concentration** (default): ranked share-of-attention across all themes — the direct
+  answer to *"where is attention concentrated"* — plus a macro-block rollup, a top-5-share
+  trend showing whether attention is narrowing or broadening, and a regime chart counting
+  themes per quadrant over time.
+- **Rotation Map**: scatter of `speculative_z` (x) vs `research_z` (y), colored
   by category, sized by |7-day combined velocity|. Quadrants: **EARLY ROTATION**
   (high research / low speculation — highlighted), **CROWDED CONSENSUS**, **FROTH / MEME**,
   **DORMANT**. Hover a point for its 14-day trail; click to open detail. Themes whose
@@ -93,8 +110,30 @@ from SQLite and contains no mock data.
    new theme (Wikipedia + Trends backfill; Reddit accrues forward — see caveats).
 
 ## Data caveats (read before trusting a signal)
-- **Attention ≠ sentiment.** We count *how much* a theme is discussed, not whether the
-  discussion is bullish or bearish. A spike can be panic or euphoria.
+- **Attention ≠ industry trend.** This measures what is being *talked about* — a
+  crowding/interest proxy that is coincident to lagging, and often peaks *with* price
+  rather than ahead of it. It is a research-triage and crowding radar, not fundamentals.
+  Real industry trend would need hard series (FRED, EIA, USGS, BLS).
+- **Sentiment is a low-confidence overlay.** VADER is tuned on general social media, not
+  finance. We extend its lexicon with unambiguous finance terms (bullish/bearish/
+  bagholder/dilution/upgrade/downgrade…) but deliberately **exclude position words**
+  (puts/calls/long/short) because their polarity flips with the speaker's book — "crash"
+  is good news if you are short. Sarcasm on r/wallstreetbets defeats it entirely. It also
+  covers **only Reddit**: Wikipedia, Trends and prices are numbers with no text to score,
+  so the research channel has no tone at all. Loughran-McDonald or FinBERT are the
+  rigorous upgrades if this proves too noisy.
+- **Share-of-attention is only as comparable as its inputs.** Wikipedia article breadth
+  distorts it — the AI theme carries the article *"Artificial intelligence"* (huge generic
+  traffic) while uranium carries *"Yellowcake"* — so Wikipedia is weighted 0.2 against 0.4
+  each for Trends and Reddit, which are keyword-scoped per theme.
+- **Attention ≠ sentiment.** We count *how much* a theme is discussed, and separately (and
+  less reliably) its tone. Volume alone cannot tell panic from euphoria.
+- **Low-variance themes inflate z-scores.** A theme with a tiny, stable baseline reaches
+  z = ±4 on a handful of extra mentions. Read the z alongside `share_pct`.
+- **No day-of-week adjustment.** Reddit and Wikipedia both have strong weekly cycles, so a
+  Monday spike may just be Monday.
+- **40 themes scanned daily means multiple comparisons** — something looks extreme every
+  day by chance.
 - **Google Trends rescaling.** Trends returns values scaled 0–100 *within each request
   window*, so naive daily snapshots aren't comparable across days. We mitigate by always
   including the `"stock market"` anchor and storing the **theme/anchor ratio**, and by
@@ -120,8 +159,15 @@ from SQLite and contains no mock data.
 - **Idempotent:** re-running `collect.py` for a date overwrites rows, never duplicates.
 - **Resilient:** each source is wrapped — one source (or one theme) failing writes NULL
   and logs; it never aborts the run.
-- **Scheduling:** `.github/workflows/collect.yml` runs daily at 22:00 UTC (CI job runs the
-  validator + unit tests). The binary SQLite file is **not** committed to git (history
-  bloat / merge conflicts); the Action persists it via cache + artifact. The authoritative
-  production run is a local/single-node cron writing the shared `data/attention.db` that
-  the web app reads.
+- **Scheduling:** `.github/workflows/collect.yml` runs daily at 22:00 UTC (a CI job runs
+  the validator + unit tests on every push).
+- **Persistence:** the database is **never committed to the code branch**. It lives on a
+  dedicated `data-snapshot` branch, force-pushed as a *single orphan commit* each run — so
+  the data is durable while the branch never accumulates binary history. This replaced
+  `actions/cache`, which evicts entries after 7 days; because **Reddit history cannot be
+  re-fetched**, a single cache miss would have permanently destroyed the entire
+  speculative and sentiment record. The collector refuses to publish an empty or corrupt
+  database over a good one.
+- **Demo → real cutover is automatic.** `pages.yml` publishes the `data-snapshot` database
+  if it exists and falls back to `seed_demo.py` otherwise, so the first successful
+  collector run switches the site to real data with no workflow edit.

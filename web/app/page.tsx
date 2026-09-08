@@ -2,16 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { ScoresResponse } from "./lib/types";
+import Concentration from "./components/Concentration";
 import RotationMap from "./components/RotationMap";
 import ThemeDetail from "./components/ThemeDetail";
 import Movers from "./components/Movers";
 
-type Tab = "map" | "detail" | "movers";
+type Tab = "concentration" | "map" | "detail" | "movers";
 
 export default function Page() {
   const [data, setData] = useState<ScoresResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("map");
+  const [tab, setTab] = useState<Tab>("concentration");
   const [selected, setSelected] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export default function Page() {
   }
 
   const tabs: { key: Tab; label: string }[] = [
+    { key: "concentration", label: "Concentration" },
     { key: "map", label: "Rotation Map" },
     { key: "detail", label: "Theme Detail" },
     { key: "movers", label: "Movers" },
@@ -87,6 +89,13 @@ export default function Page() {
 
       {data && (
         <>
+          {tab === "concentration" && (
+            <Concentration
+              themes={data.themes}
+              concentration={data.concentration ?? []}
+              onSelect={openTheme}
+            />
+          )}
           {tab === "map" && (
             <RotationMap themes={data.themes} onSelect={openTheme} />
           )}

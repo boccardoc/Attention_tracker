@@ -7,8 +7,23 @@ export interface HistoryPoint {
   date: string;
   research_z: number | null;
   speculative_z: number | null;
+  sentiment_z: number | null;
   research_velocity_7d: number | null;
   speculative_velocity_7d: number | null;
+  sentiment_velocity_7d: number | null;
+  /** Share of ALL themes' attention that day (0-1). Sums to 1 across themes. */
+  share_pct: number | null;
+}
+
+/** One day of market-wide concentration — how narrow is attention overall. */
+export interface ConcentrationPoint {
+  date: string;
+  hhi: number | null;
+  top5_share: number | null;
+  breadth_early: number | null;
+  breadth_crowded: number | null;
+  breadth_froth: number | null;
+  breadth_dormant: number | null;
 }
 
 export interface PricePoint {
@@ -37,4 +52,6 @@ export interface ThemeData {
 export interface ScoresResponse {
   asOf: string | null;
   themes: ThemeData[];
+  /** 180-day market-wide concentration series, oldest first. */
+  concentration: ConcentrationPoint[];
 }

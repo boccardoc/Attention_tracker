@@ -9,7 +9,14 @@ Definitions (per the spec):
           else NULL; winsorized to +/- WINSOR.
   research_z    = mean of available {wikipedia_z, gtrends_z}
   speculative_z = reddit_z
+  sentiment_z   = z of the mean VADER compound over matched Reddit posts
   velocity_7d   = z(d) - z(d - 7 calendar days)
+
+Z-scores answer "what is unusual for THIS theme versus its own past". They deliberately
+destroy cross-theme comparability, so they cannot answer "where is attention concentrated
+right now" -- a theme averaging 5 mentions/day that ticks to 9 scores z=+4, while one
+averaging 5000/day scores 0. `attention_share` below supplies that missing absolute view:
+each theme's share of all themes' attention on a given day.
 """
 from __future__ import annotations
 
@@ -20,6 +27,13 @@ MIN_HISTORY = 30          # need >= 30 non-null points before emitting a z-score
 WINDOW_DAYS = 90          # trailing window length
 WINSOR = 4.0              # clamp z to +/- this
 VELOCITY_LAG_DAYS = 7
+
+# Relative trust when blending each source's share into one composite share.
+# Wikipedia is down-weighted on purpose: article breadth, not investor interest, drives
+# its magnitude (the AI theme carries "Artificial intelligence", uranium carries
+# "Yellowcake"). Trends and Reddit are keyword-scoped per theme, so far more comparable.
+SHARE_WEIGHTS = {"gtrends": 0.4, "reddit": 0.4, "wikipedia": 0.2}
+TOP_N_SHARE = 5           # "top 5 themes hold X% of attention"
 
 
 def _parse(d: str) -> _date:
@@ -88,29 +102,117 @@ def compute_theme_scores(
     wiki_series: list[tuple[str, float | None]],
     gtrends_series: list[tuple[str, float | None]],
     reddit_series: list[tuple[str, float | None]],
+    sentiment_series: list[tuple[str, float | None]] | None = None,
 ) -> dict[str, dict]:
-    """Combine the three raw source series into per-date score rows.
+    """Combine the raw source series into per-date score rows.
 
-    Returns {date: {research_z, speculative_z, research_velocity_7d,
-    speculative_velocity_7d}} for every date present in any source.
+    sentiment_series is optional so existing callers keep working; when absent the
+    sentiment fields come back as None rather than being omitted.
+
+    Returns {date: {research_z, speculative_z, sentiment_z, research_velocity_7d,
+    speculative_velocity_7d, sentiment_velocity_7d}} for every date present in any source.
     """
     wiki_z = zscore_series(wiki_series)
     gtrends_z = zscore_series(gtrends_series)
     reddit_z = zscore_series(reddit_series)
+    sentiment_z = zscore_series(sentiment_series or [])
 
     research_z = compose_research(wiki_z, gtrends_z)
     speculative_z = dict(reddit_z)
 
     research_vel = velocity_7d(research_z)
     speculative_vel = velocity_7d(speculative_z)
+    sentiment_vel = velocity_7d(sentiment_z)
 
-    all_dates = set(research_z) | set(speculative_z)
+    all_dates = set(research_z) | set(speculative_z) | set(sentiment_z)
     rows: dict[str, dict] = {}
     for d in all_dates:
         rows[d] = {
             "research_z": research_z.get(d),
             "speculative_z": speculative_z.get(d),
+            "sentiment_z": sentiment_z.get(d),
             "research_velocity_7d": research_vel.get(d),
             "speculative_velocity_7d": speculative_vel.get(d),
+            "sentiment_velocity_7d": sentiment_vel.get(d),
         }
     return rows
+
+
+# --------------------------------------------------------------- concentration layer
+
+def attention_share(
+    series_by_theme_source: dict[tuple[str, str], list[tuple[str, float | None]]],
+    weights: dict[str, float] | None = None,
+) -> dict[str, dict[str, float]]:
+    """Each theme's share of total attention, per day. Answers "where is attention".
+
+    Input is keyed (theme_id, source) -> [(date, raw_value), ...] -- exactly the shape
+    db.fetch_source_series returns, collected across every theme.
+
+    Shares are computed WITHIN each source first (raw units differ wildly: pageviews
+    ~10^3, gtrends ratios ~0.5, reddit authors ~10^1, so raw values can never be summed
+    across sources), then blended using SHARE_WEIGHTS renormalized over whichever sources
+    actually reported that day. Because each per-source share map sums to 1 across themes,
+    the blend does too.
+
+    Returns {date: {theme_id: share}} with shares summing to ~1.0 per date.
+    """
+    weights = weights or SHARE_WEIGHTS
+
+    # date -> source -> theme -> value
+    by_date: dict[str, dict[str, dict[str, float]]] = {}
+    for (theme_id, source), series in series_by_theme_source.items():
+        for d, v in series:
+            if v is None or v < 0:
+                continue
+            by_date.setdefault(d, {}).setdefault(source, {})[theme_id] = float(v)
+
+    out: dict[str, dict[str, float]] = {}
+    for d, per_source in by_date.items():
+        # Only sources we have a weight for and that carry a non-zero total contribute.
+        usable = {
+            s: vals for s, vals in per_source.items()
+            if s in weights and sum(vals.values()) > 0
+        }
+        if not usable:
+            continue
+        weight_total = sum(weights[s] for s in usable)
+        combined: dict[str, float] = {}
+        for s, vals in usable.items():
+            source_total = sum(vals.values())
+            w = weights[s] / weight_total
+            for theme_id, v in vals.items():
+                combined[theme_id] = combined.get(theme_id, 0.0) + w * (v / source_total)
+        out[d] = combined
+    return out
+
+
+def concentration_index(shares: dict[str, float]) -> dict[str, float]:
+    """Herfindahl index and top-N share for one day's share map.
+
+    hhi ranges from 1/N (attention spread perfectly evenly) to 1.0 (all on one theme);
+    a rising hhi means attention is NARROWING onto fewer themes.
+    """
+    vals = sorted((v for v in shares.values() if v > 0), reverse=True)
+    return {
+        "hhi": sum(v * v for v in vals),
+        "top5_share": sum(vals[:TOP_N_SHARE]),
+    }
+
+
+def quadrant_breadth(day_scores: dict[str, dict]) -> dict[str, int]:
+    """How many themes sit in each rotation quadrant on one day.
+
+    Mirrors the quadrant split used by the dashboard (web/app/lib/ui.ts): the y axis is
+    research_z, the x axis speculative_z. Themes missing either z are not counted.
+    """
+    counts = {"early": 0, "crowded": 0, "froth": 0, "dormant": 0}
+    for s in day_scores.values():
+        r, sp = s.get("research_z"), s.get("speculative_z")
+        if r is None or sp is None:
+            continue
+        if r >= 0:
+            counts["early" if sp < 0 else "crowded"] += 1
+        else:
+            counts["dormant" if sp < 0 else "froth"] += 1
+    return counts

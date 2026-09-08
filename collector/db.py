@@ -58,6 +58,18 @@ CREATE TABLE IF NOT EXISTS prices (
   PRIMARY KEY (date, ticker)
 );
 
+-- Where the attention comes FROM: per-theme search interest by country, 0-100 relative
+-- within the theme. Refreshed weekly rather than daily (see collect.py) because Trends
+-- is the most rate-limit-fragile source and country mix moves slowly.
+CREATE TABLE IF NOT EXISTS theme_geo (
+  date     TEXT NOT NULL,
+  theme_id TEXT NOT NULL,
+  country  TEXT NOT NULL,   -- ISO-3166 alpha-2
+  interest REAL,
+  PRIMARY KEY (date, theme_id, country)
+);
+
+CREATE INDEX IF NOT EXISTS idx_theme_geo ON theme_geo (theme_id, date);
 CREATE INDEX IF NOT EXISTS idx_raw_theme_source ON raw_attention (theme_id, source, date);
 CREATE INDEX IF NOT EXISTS idx_scores_theme     ON scores (theme_id, date);
 CREATE INDEX IF NOT EXISTS idx_prices_ticker    ON prices (ticker, date);
@@ -148,6 +160,24 @@ def upsert_prices(conn: sqlite3.Connection, rows: list[tuple]) -> None:
         rows,
     )
     conn.commit()
+
+
+def upsert_theme_geo(conn: sqlite3.Connection, rows: list[tuple]) -> None:
+    """rows: (date, theme_id, country, interest). Idempotent overwrite."""
+    conn.executemany(
+        "INSERT OR REPLACE INTO theme_geo (date, theme_id, country, interest) "
+        "VALUES (?, ?, ?, ?)",
+        rows,
+    )
+    conn.commit()
+
+
+def latest_geo_date(conn: sqlite3.Connection, theme_id: str) -> str | None:
+    """Most recent date we have country data for, used to gate the weekly refresh."""
+    row = conn.execute(
+        "SELECT MAX(date) FROM theme_geo WHERE theme_id = ?", (theme_id,)
+    ).fetchone()
+    return row[0] if row else None
 
 
 def fetch_source_series(conn: sqlite3.Connection, theme_id: str, source: str) -> list[tuple]:

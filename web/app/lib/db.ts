@@ -5,10 +5,12 @@ import type {
   Basket,
   BasketQuote,
   ConcentrationPoint,
+  GeoInterest,
   HistoryPoint,
   PricePoint,
   ScoresResponse,
   ThemeData,
+  ThemeGeo,
 } from "./types";
 
 const HISTORY_DAYS = 180;
@@ -19,6 +21,7 @@ interface RawTheme {
   category: string;
   basket: Basket;
   date_added: string;
+  geo: ThemeGeo;
 }
 
 /** Resolve the shared SQLite path the same way the Python collector does. */
@@ -84,6 +87,13 @@ export function getScores(): ScoresResponse {
       `SELECT date, close FROM prices WHERE ticker = ?
        ORDER BY date DESC LIMIT ?`,
     );
+    // Only the most recent geo snapshot: it refreshes weekly, and the panel shows a
+    // current picture rather than a history.
+    const geoStmt = db.prepare(
+      `SELECT country, interest FROM theme_geo
+       WHERE theme_id = ? AND date = (SELECT MAX(date) FROM theme_geo WHERE theme_id = ?)
+       ORDER BY interest DESC`,
+    );
 
     const out: ThemeData[] = themes.map((t) => {
       const history = (
@@ -114,6 +124,8 @@ export function getScores(): ScoresResponse {
         category: t.category,
         basket: t.basket,
         date_added: t.date_added,
+        geo: t.geo ?? { footprint: [], listings: {} },
+        geoInterest: geoStmt.all(t.id, t.id) as GeoInterest[],
         latest,
         history,
         etfPrices,

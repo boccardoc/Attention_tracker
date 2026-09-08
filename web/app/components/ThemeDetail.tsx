@@ -12,6 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import type { ThemeData } from "../lib/types";
+import ThemeGeography from "./ThemeGeography";
 import {
   divergenceCallout,
   fmtPct,
@@ -190,6 +191,8 @@ export default function ThemeDetail({
           {t.basket.etf && <Legend color="#8b93a7" label={`${t.basket.etf} price (idx)`} />}
         </div>
       </div>
+
+      <ThemeGeography theme={t} />
 
       <div>
         <div className="mb-2 text-xs font-semibold text-muted">BASKET</div>

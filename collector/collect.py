@@ -35,6 +35,7 @@ log = logging.getLogger("collector")
 TAXONOMY = Path(__file__).parent / "taxonomy.json"
 GTRENDS_WINDOW_DAYS = 90       # trailing window re-pulled & overwritten each run
 PRICE_LOOKBACK_DAYS = 10       # enough for 7-day change + a buffer
+GEO_REFRESH_DAYS = 7           # country mix moves slowly; don't burn Trends quota daily
 
 
 def load_themes() -> list[dict]:
@@ -96,6 +97,38 @@ def collect_reddit(conn, themes, as_of: date) -> None:
     db.upsert_raw(conn, rows)
     scored_n = sum(1 for r in rows if r[2] == "reddit_sentiment" and r[3] is not None)
     log.info("reddit: wrote %d rows (%d themes with sentiment)", len(rows), scored_n)
+
+
+def collect_geo(conn, themes, as_of: date) -> None:
+    """Refresh per-theme country interest, but only for themes whose data is stale.
+
+    This is throttled to weekly on purpose. Trends 429s are the collector's most common
+    failure, and doing every theme daily would add ~40 requests (4-7 minutes of enforced
+    sleeps) for data whose country mix barely shifts day to day.
+    """
+    cutoff = (as_of - timedelta(days=GEO_REFRESH_DAYS)).isoformat()
+    stale = [
+        t for t in themes
+        if (db.latest_geo_date(conn, t["id"]) or "") < cutoff
+    ]
+    if not stale:
+        log.info("geo: all %d themes fresh (<%dd), skipping", len(themes), GEO_REFRESH_DAYS)
+        return
+
+    log.info("geo: refreshing %d/%d stale themes", len(stale), len(themes))
+    for t in stale:
+        try:
+            regions = gtrends.fetch_theme_regions(t["gtrends_queries"])
+        except Exception as e:  # noqa: BLE001
+            log.warning("geo theme %s failed: %s", t["id"], e)
+            continue
+        if not regions:
+            continue
+        db.upsert_theme_geo(conn, [
+            (as_of.isoformat(), t["id"], country, value)
+            for country, value in regions.items()
+        ])
+    log.info("geo: done")
 
 
 def collect_prices(conn, themes, as_of: date) -> None:
@@ -199,6 +232,7 @@ def run(as_of: date) -> None:
         ("wikipedia", collect_wikipedia),
         ("gtrends", collect_gtrends),
         ("reddit", collect_reddit),
+        ("geo", collect_geo),
         ("prices", collect_prices),
     ):
         try:

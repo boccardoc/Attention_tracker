@@ -116,6 +116,31 @@ def synth_prices(themes):
     return rows
 
 
+def synth_geo(themes):
+    """Synthetic 'where the searches come from' rows.
+
+    Shaped to look like real Trends output rather than uniform noise: the English-query
+    bias means the anglophone markets always score highly, while the theme's own curated
+    footprint countries get a boost so the two maps are visibly related but not identical
+    — which is exactly the comparison the panel exists to show.
+    """
+    anglo = ["US", "GB", "CA", "AU", "IN", "SG", "ZA", "NZ", "IE", "PH"]
+    rows = []
+    d = END.isoformat()
+    for t in themes:
+        scores = {}
+        for i, c in enumerate(anglo):
+            scores[c] = max(4.0, 100 * (0.85 ** i) * random.uniform(0.55, 1.0))
+        for i, c in enumerate(t["geo"]["footprint"]):
+            boost = 100 * (0.8 ** i) * random.uniform(0.4, 0.95)
+            scores[c] = max(scores.get(c, 0.0), boost)
+        top = max(scores.values())
+        rows += [
+            (d, t["id"], c, round(100 * v / top, 1)) for c, v in scores.items()
+        ]
+    return rows
+
+
 def main():
     themes = json.loads(TAXONOMY.read_text())
     conn = db.connect()
@@ -123,6 +148,7 @@ def main():
 
     db.upsert_raw(conn, synth_attention(themes))
     db.upsert_prices(conn, synth_prices(themes))
+    db.upsert_theme_geo(conn, synth_geo(themes))
     n = collect.recompute_scores(conn, themes, as_of=None)
     print(f"done. {n}/{len(themes)} themes have non-null research_z (latest).")
     conn.close()

@@ -22,6 +22,8 @@ import random
 import time
 from datetime import date
 
+from . import countries
+
 log = logging.getLogger("collector.gtrends")
 
 ANCHOR = "stock market"
@@ -92,4 +94,67 @@ def fetch_theme_ratio(
             continue
         d = ts.date().isoformat() if hasattr(ts, "date") else str(ts)[:10]
         out[d] = sum(ratios) / len(ratios)
+    return out
+
+
+def fetch_theme_regions(queries: list[str], timeframe_days: int = 90) -> dict[str, float]:
+    """Which countries search for this theme: {ISO2: interest 0-100}.
+
+    Google normalises regional interest so the strongest country is 100 and the rest are
+    relative to it -- these are shares of a country's own search volume, not absolute
+    counts, so they are comparable WITHIN a theme but not across themes.
+
+    IMPORTANT BIAS: the theme's queries are English finance phrases ("uranium stocks"),
+    so this measures English-language search interest and structurally over-weights the
+    US/UK/CA/AU regardless of where the industry actually operates. The dashboard says so
+    next to the map; do not read it as global interest.
+
+    The anchor term is deliberately NOT included here: regional results are already
+    normalised per-request, so an anchor would just consume one of the five payload slots
+    for nothing. Returns {} on any failure so the caller writes nothing and the run
+    continues.
+    """
+    queries = queries[:MAX_THEME_TERMS]
+    if not queries:
+        return {}
+    timeframe = f"today {max(1, timeframe_days // 30)}-m"
+
+    try:
+        pytrends = _build_pytrends()
+    except Exception as e:  # noqa: BLE001
+        log.error("gtrends unavailable for regions: %s", e)
+        return {}
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            pytrends.build_payload(queries, timeframe=timeframe, geo="")
+            df = pytrends.interest_by_region(resolution="COUNTRY", inc_low_vol=True)
+            _sleep()
+            break
+        except Exception as e:  # noqa: BLE001
+            wait = (2 ** attempt) + random.uniform(0, 1.5)
+            log.warning(
+                "gtrends region request failed (attempt %d/%d) for %s: %s; backing off %.1fs",
+                attempt + 1, MAX_RETRIES, queries, e, wait,
+            )
+            time.sleep(wait)
+    else:
+        log.error("gtrends giving up on regions for %s", queries)
+        return {}
+
+    if df is None or df.empty:
+        return {}
+
+    out: dict[str, float] = {}
+    for country_name, row in df.iterrows():
+        iso2 = countries.to_iso2(str(country_name))
+        if not iso2:
+            continue  # unmapped country: skipped and logged, never guessed
+        # Average across the theme's queries so one broad query cannot dominate.
+        vals = [float(row[q]) for q in queries if q in df.columns]
+        if not vals:
+            continue
+        score = sum(vals) / len(vals)
+        if score > 0:
+            out[iso2] = score
     return out

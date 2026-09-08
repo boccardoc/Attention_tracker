@@ -3,6 +3,18 @@ export interface Basket {
   stocks: string[];
 }
 
+/** Curated: where the industry physically operates. Ordered most-significant-first. */
+export interface ThemeGeo {
+  footprint: string[];                    // ISO-3166 alpha-2
+  listings: Record<string, string>;       // ticker -> ISO2
+}
+
+/** Live: which countries search for this theme (Google Trends, 0-100 within theme). */
+export interface GeoInterest {
+  country: string;                        // ISO-3166 alpha-2
+  interest: number;
+}
+
 export interface HistoryPoint {
   date: string;
   research_z: number | null;
@@ -43,6 +55,9 @@ export interface ThemeData {
   category: string;
   basket: Basket;
   date_added: string;
+  geo: ThemeGeo;
+  /** Empty until the weekly Trends geo refresh has run at least once. */
+  geoInterest: GeoInterest[];
   latest: HistoryPoint | null;
   history: HistoryPoint[];
   etfPrices: PricePoint[]; // basket ETF series for the detail overlay

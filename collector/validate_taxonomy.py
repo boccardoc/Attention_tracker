@@ -12,6 +12,9 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from sources.countries import VALID_ISO2  # noqa: E402
+
 TAXONOMY_PATH = Path(__file__).parent / "taxonomy.json"
 
 REQUIRED_FIELDS = {
@@ -23,7 +26,13 @@ REQUIRED_FIELDS = {
     "reddit_keywords": list,
     "basket": dict,
     "date_added": str,
+    "geo": dict,
 }
+
+# Presence is checked against REQUIRED_FIELDS; membership is checked against this. They
+# were the same set until `geo` arrived — keeping them separate means a genuinely optional
+# field can be added later without it silently becoming mandatory.
+ALLOWED_FIELDS = set(REQUIRED_FIELDS)
 
 ID_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -72,7 +81,7 @@ def validate():
 
         # Unknown fields (catch typos)
         for field in theme:
-            if field not in REQUIRED_FIELDS:
+            if field not in ALLOWED_FIELDS:
                 pri(tid, f"unknown field '{field}'")
 
         # id format + uniqueness
@@ -101,6 +110,42 @@ def validate():
         gq = theme.get("gtrends_queries")
         if isinstance(gq, list) and len(gq) > 4:
             pri(tid, f"gtrends_queries has {len(gq)} entries; max 4 (anchor term occupies the 5th slot)")
+
+        # geo validation — a wrong ISO code silently disappears from the world map
+        # rather than erroring at runtime, so it has to be caught here.
+        geo = theme.get("geo")
+        if isinstance(geo, dict):
+            extra = set(geo) - {"footprint", "listings"}
+            if extra:
+                pri(tid, f"geo has unexpected keys: {sorted(extra)}")
+
+            footprint = geo.get("footprint")
+            if not isinstance(footprint, list) or not footprint:
+                pri(tid, "geo.footprint must be a non-empty list of ISO-3166 alpha-2 codes")
+            else:
+                if len(footprint) != len(set(footprint)):
+                    pri(tid, "geo.footprint contains duplicates")
+                for code in footprint:
+                    if code not in VALID_ISO2:
+                        pri(tid, f"geo.footprint has unknown country code '{code}'")
+
+            listings = geo.get("listings")
+            if not isinstance(listings, dict):
+                pri(tid, "geo.listings must be an object mapping ticker -> country code")
+            else:
+                basket_tickers = set()
+                b = theme.get("basket")
+                if isinstance(b, dict):
+                    basket_tickers = set(b.get("stocks") or [])
+                    if b.get("etf"):
+                        basket_tickers.add(b["etf"])
+                for ticker, code in listings.items():
+                    if ticker not in basket_tickers:
+                        pri(tid, f"geo.listings ticker '{ticker}' is not in the basket")
+                    if code not in VALID_ISO2:
+                        pri(tid, f"geo.listings['{ticker}'] has unknown country '{code}'")
+                for ticker in sorted(basket_tickers - set(listings)):
+                    pri(tid, f"geo.listings is missing basket ticker '{ticker}'")
 
         # basket validation
         basket = theme.get("basket")

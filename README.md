@@ -91,7 +91,12 @@ from SQLite and contains no mock data.
   (high research / low speculation — highlighted), **CROWDED CONSENSUS**, **FROTH / MEME**,
   **DORMANT**. Hover a point for its 14-day trail; click to open detail. Themes whose
   speculative channel is still warming up appear in a side tray.
-- **Theme Detail**: `research_z` and `speculative_z` over 180 days with the basket ETF's
+- **Theme Detail** — includes a **Geography** panel with two world maps side by side:
+  *industry footprint* (curated: where the industry physically operates, ranked, with each
+  basket ticker's country) next to *where the searches come from* (live Google Trends).
+  The gap between them is the point — attention arriving from countries the industry has
+  no presence in usually means a theme is being traded as a narrative rather than followed
+  as an industry. Also shows `research_z` and `speculative_z` over 180 days with the ETF's
   normalized price overlaid, a plain-language divergence callout, and the basket tickers
   as cards (price + 7-day change).
 - **Movers**: top 10 by research velocity and top 10 by speculative velocity, side by side,
@@ -122,6 +127,19 @@ from SQLite and contains no mock data.
   covers **only Reddit**: Wikipedia, Trends and prices are numbers with no text to score,
   so the research channel has no tone at all. Loughran-McDonald or FinBERT are the
   rigorous upgrades if this proves too noisy.
+- **The industry footprint is curated judgement, not a sourced dataset.** `geo.footprint`
+  in `taxonomy.json` records where the *activity* is (mines, fabs, production, end market),
+  not corporate domicile — Freeport is US-domiciled but its largest copper mine is Grasberg
+  in Indonesia, so `copper` lists `ID`. It is deliberately **ranked, not weighted**:
+  claiming "35% Kazakhstan" would invent precision that has no source. Four countries
+  (Singapore, Hong Kong, Monaco, Marshall Islands) are too small to shade on the world map
+  at 110m resolution; the UI names them in the list instead of dropping them.
+- **"Where the searches come from" over-weights the anglosphere.** Trends regional interest
+  is fetched with our English query phrases, so the US/UK/Canada/Australia score highly
+  regardless of where an industry actually sits. It is also relative *within* a theme
+  (top country = 100), so it cannot be compared across themes. Refreshed weekly, not
+  daily — Trends rate limits are the collector's most common failure and country mix
+  barely moves day to day.
 - **Share-of-attention is only as comparable as its inputs.** Wikipedia article breadth
   distorts it — the AI theme carries the article *"Artificial intelligence"* (huge generic
   traffic) while uranium carries *"Yellowcake"* — so Wikipedia is weighted 0.2 against 0.4

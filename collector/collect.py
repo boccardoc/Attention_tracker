@@ -24,7 +24,7 @@ from pathlib import Path
 
 import db
 import normalize
-from sources import gtrends, prices, reddit, sentiment, wikipedia
+from sources import analysts, edgar, gtrends, managers, prices, reddit, sentiment, wikipedia
 
 logging.basicConfig(
     level=logging.INFO,
@@ -36,6 +36,7 @@ TAXONOMY = Path(__file__).parent / "taxonomy.json"
 GTRENDS_WINDOW_DAYS = 90       # trailing window re-pulled & overwritten each run
 PRICE_LOOKBACK_DAYS = 10       # enough for 7-day change + a buffer
 GEO_REFRESH_DAYS = 7           # country mix moves slowly; don't burn Trends quota daily
+ANALYST_REFRESH_DAYS = 7       # yfinance endpoint is flaky; weekly is plenty
 
 
 def load_themes() -> list[dict]:
@@ -129,6 +130,70 @@ def collect_geo(conn, themes, as_of: date) -> None:
             for country, value in regions.items()
         ])
     log.info("geo: done")
+
+
+def collect_institutions(conn, themes, as_of: date) -> None:
+    """13F holdings for the tracked managers, filtered to our basket universe.
+
+    Only fetches a manager when EDGAR has a quarter we do not already hold, so the daily
+    cost is one cheap index request per manager and real downloads happen ~4x a year.
+    """
+    universe = {
+        tk for t in themes for tk in prices.basket_tickers(t)
+    }
+    company_names = edgar.fetch_company_names()
+    if not company_names:
+        log.warning("institutions: no SEC name index; relying on curated aliases only")
+    index = edgar.build_issuer_index(universe, company_names)
+
+    unmatched: set[str] = set()
+    for manager in managers.MANAGERS:
+        have = db.latest_holdings_quarter(conn, manager.slug)
+        try:
+            result = edgar.fetch_holdings(manager, period_hint=have)
+        except Exception as e:  # noqa: BLE001
+            log.warning("institutions %s failed: %s", manager.slug, e)
+            continue
+        if not result:
+            continue
+        quarter, positions = result
+
+        rows = []
+        for p in positions:
+            ticker = index.get(edgar.normalise_issuer(p["issuer"]))
+            if not ticker:
+                unmatched.add(p["issuer"])
+                continue
+            rows.append((quarter, manager.slug, ticker, p["value_usd"], p["shares"]))
+        if rows:
+            db.upsert_holdings(conn, rows)
+            log.info("institutions %s: %d in-universe positions for %s",
+                     manager.slug, len(rows), quarter)
+
+    if unmatched:
+        # Reported, never guessed — an unmatched issuer is simply a holding outside our
+        # 40 themes, which is the overwhelming majority of any large manager's book.
+        log.debug("institutions: %d issuer names outside the universe", len(unmatched))
+
+
+def collect_analysts(conn, themes, as_of: date) -> None:
+    """Sell-side rating actions across every basket ticker, refreshed weekly."""
+    last = db.latest_analyst_date(conn)
+    cutoff = (as_of - timedelta(days=ANALYST_REFRESH_DAYS)).isoformat()
+    if last and last >= cutoff:
+        log.info("analysts: refreshed %s, skipping", last)
+        return
+
+    universe = sorted({tk for t in themes for tk in prices.basket_tickers(t)})
+    since = analysts.default_since(as_of)
+    rows = []
+    for ticker in universe:
+        for a in analysts.fetch_actions(ticker, since):
+            rows.append((a["date"], a["ticker"], a["firm"], a["action"],
+                         a["from_grade"], a["to_grade"]))
+    if rows:
+        db.upsert_analyst_actions(conn, rows)
+    log.info("analysts: wrote %d actions across %d tickers", len(rows), len(universe))
 
 
 def collect_prices(conn, themes, as_of: date) -> None:
@@ -233,6 +298,8 @@ def run(as_of: date) -> None:
         ("gtrends", collect_gtrends),
         ("reddit", collect_reddit),
         ("geo", collect_geo),
+        ("institutions", collect_institutions),
+        ("analysts", collect_analysts),
         ("prices", collect_prices),
     ):
         try:

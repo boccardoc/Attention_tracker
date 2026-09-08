@@ -69,6 +69,31 @@ CREATE TABLE IF NOT EXISTS theme_geo (
   PRIMARY KEY (date, theme_id, country)
 );
 
+-- What large managers HELD, per quarter, from SEC 13F filings. Deliberately separate
+-- from the daily attention tables: this is quarterly and up to 135 days stale, so it can
+-- never be folded into a daily z-score.
+CREATE TABLE IF NOT EXISTS institutional_holdings (
+  quarter   TEXT NOT NULL,     -- 13F period of report, e.g. '2026-06-30'
+  manager   TEXT NOT NULL,     -- slug from sources/managers.py
+  ticker    TEXT NOT NULL,
+  value_usd REAL,              -- always whole dollars (units normalised on ingest)
+  shares    REAL,
+  PRIMARY KEY (quarter, manager, ticker)
+);
+
+-- What the sell side is PUBLISHING. Continuous, unlike 13F.
+CREATE TABLE IF NOT EXISTS analyst_actions (
+  date       TEXT NOT NULL,
+  ticker     TEXT NOT NULL,
+  firm       TEXT NOT NULL,
+  action     TEXT,
+  from_grade TEXT,
+  to_grade   TEXT,
+  PRIMARY KEY (date, ticker, firm, to_grade)
+);
+
+CREATE INDEX IF NOT EXISTS idx_holdings_ticker ON institutional_holdings (ticker, quarter);
+CREATE INDEX IF NOT EXISTS idx_analyst_ticker  ON analyst_actions (ticker, date);
 CREATE INDEX IF NOT EXISTS idx_theme_geo ON theme_geo (theme_id, date);
 CREATE INDEX IF NOT EXISTS idx_raw_theme_source ON raw_attention (theme_id, source, date);
 CREATE INDEX IF NOT EXISTS idx_scores_theme     ON scores (theme_id, date);
@@ -170,6 +195,39 @@ def upsert_theme_geo(conn: sqlite3.Connection, rows: list[tuple]) -> None:
         rows,
     )
     conn.commit()
+
+
+def upsert_holdings(conn: sqlite3.Connection, rows: list[tuple]) -> None:
+    """rows: (quarter, manager, ticker, value_usd, shares)."""
+    conn.executemany(
+        "INSERT OR REPLACE INTO institutional_holdings "
+        "(quarter, manager, ticker, value_usd, shares) VALUES (?, ?, ?, ?, ?)",
+        rows,
+    )
+    conn.commit()
+
+
+def upsert_analyst_actions(conn: sqlite3.Connection, rows: list[tuple]) -> None:
+    """rows: (date, ticker, firm, action, from_grade, to_grade)."""
+    conn.executemany(
+        "INSERT OR REPLACE INTO analyst_actions "
+        "(date, ticker, firm, action, from_grade, to_grade) VALUES (?, ?, ?, ?, ?, ?)",
+        rows,
+    )
+    conn.commit()
+
+
+def latest_holdings_quarter(conn: sqlite3.Connection, manager: str) -> str | None:
+    """Newest 13F quarter stored for a manager, used to skip re-downloading."""
+    row = conn.execute(
+        "SELECT MAX(quarter) FROM institutional_holdings WHERE manager = ?", (manager,)
+    ).fetchone()
+    return row[0] if row else None
+
+
+def latest_analyst_date(conn: sqlite3.Connection) -> str | None:
+    row = conn.execute("SELECT MAX(date) FROM analyst_actions").fetchone()
+    return row[0] if row else None
 
 
 def latest_geo_date(conn: sqlite3.Connection, theme_id: str) -> str | None:

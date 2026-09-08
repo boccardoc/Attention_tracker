@@ -64,9 +64,55 @@ export interface ThemeData {
   quotes: BasketQuote[]; // latest + 7d change for every basket ticker (etf + stocks)
 }
 
+/** 13F: what a manager style held in a theme's basket, and the quarter-over-quarter move. */
+export interface StyleHolding {
+  style: string;          // 'passive' | 'active' | 'bank'
+  value: number;
+  prev: number;
+  delta: number;
+}
+
+export interface InstitutionalTheme {
+  theme_id: string;
+  quarter: string;
+  prev_quarter: string | null;
+  total: number;
+  prev_total: number;
+  delta: number;
+  byStyle: StyleHolding[];
+}
+
+/** Sell-side rating action, with the firm named. */
+export interface AnalystAction {
+  date: string;
+  ticker: string;
+  firm: string;
+  action: string;
+  from_grade: string;
+  to_grade: string;
+}
+
+export interface AnalystTheme {
+  theme_id: string;
+  upgrades: number;
+  downgrades: number;
+  net: number;
+  recent: AnalystAction[];
+}
+
+export interface Institutions {
+  /** 13F period the holdings describe. Filed up to 45 days after this date. */
+  quarter: string | null;
+  prevQuarter: string | null;
+  themes: InstitutionalTheme[];
+  analysts: AnalystTheme[];
+}
+
 export interface ScoresResponse {
   asOf: string | null;
   themes: ThemeData[];
   /** 180-day market-wide concentration series, oldest first. */
   concentration: ConcentrationPoint[];
+  /** 13F positioning + sell-side actions. Separate from the daily attention channels. */
+  institutions: Institutions;
 }

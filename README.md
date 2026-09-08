@@ -99,6 +99,9 @@ from SQLite and contains no mock data.
   as an industry. Also shows `research_z` and `speculative_z` over 180 days with the ETF's
   normalized price overlaid, a plain-language divergence callout, and the basket tickers
   as cards (price + 7-day change).
+- **Institutions**: what the large managers hold and what the banks are publishing —
+  themes ranked by *quarter-over-quarter change* in 13F holdings (split passive / active /
+  bank), plus net analyst upgrades minus downgrades per theme with the firms named.
 - **Movers**: top 10 by research velocity and top 10 by speculative velocity, side by side,
   with z-scores, a velocity sparkline, and the basket ETF's 7-day price change.
 
@@ -127,6 +130,22 @@ from SQLite and contains no mock data.
   covers **only Reddit**: Wikipedia, Trends and prices are numbers with no text to score,
   so the research channel has no tone at all. Loughran-McDonald or FinBERT are the
   rigorous upgrades if this proves too noisy.
+- **You cannot see where institutions are *looking* — only where they were *positioned*.**
+  Order flow, prime-brokerage data and internal research pipelines are proprietary. 13F
+  filings show long US-listed equity holdings as of a quarter end, filed up to 45 days
+  later, so the freshest possible reading is 45–135 days old. No shorts, bonds,
+  derivatives or foreign listings.
+- **Index holdings are not conviction.** BlackRock owns ~7% of most large US companies
+  because it replicates indices. Ranking themes by raw 13F dollars would just rank them by
+  market cap, so the Institutions tab ranks by **change** and separates
+  `passive` / `active` / `bank`. Bank 13Fs (JPMorgan, Goldman, Morgan Stanley) additionally
+  mix client assets with market-making inventory, so they are shown but never read as a view.
+- **Analyst actions are opinion, not capital.** Upgrades and downgrades are timely and name
+  the firm, but nothing is committed behind them; yfinance's ratings endpoint is also
+  unofficial and its coverage of small caps and ADRs is patchy.
+- **The 13F `value` field changed units.** Filings through 2022 report thousands of dollars;
+  from 2023 they report whole dollars. The collector normalises both to dollars on ingest —
+  conflating them would make figures 1000× wrong.
 - **The industry footprint is curated judgement, not a sourced dataset.** `geo.footprint`
   in `taxonomy.json` records where the *activity* is (mines, fabs, production, end market),
   not corporate domicile — Freeport is US-domiciled but its largest copper mine is Grasberg

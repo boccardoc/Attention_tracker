@@ -200,6 +200,64 @@ def concentration_index(shares: dict[str, float]) -> dict[str, float]:
     }
 
 
+def institutional_by_theme(
+    holdings: list[tuple],
+    theme_tickers: dict[str, set[str]],
+    manager_styles: dict[str, str],
+) -> dict[str, dict]:
+    """Aggregate 13F holdings up to themes, with the quarter-over-quarter change.
+
+    holdings: (quarter, manager, ticker, value_usd) rows.
+
+    The CHANGE is the point, not the level. Index managers hold nearly everything roughly
+    in proportion to its market cap, so a ranking by absolute dollars would just rank
+    themes by size and say nothing about interest. Values are also split by manager style
+    so passive index replication is never read as conviction.
+
+    Returns {theme_id: {quarter, prev_quarter, total, prev_total, delta,
+                        by_style: {style: {value, prev, delta}}}}.
+    """
+    quarters = sorted({h[0] for h in holdings})
+    if not quarters:
+        return {}
+    latest = quarters[-1]
+    prev = quarters[-2] if len(quarters) > 1 else None
+
+    # (theme, quarter, style) -> summed value
+    agg: dict[tuple[str, str, str], float] = {}
+    for quarter, manager, ticker, value in holdings:
+        if quarter not in (latest, prev):
+            continue
+        style = manager_styles.get(manager, "active")
+        for theme_id, tickers in theme_tickers.items():
+            if ticker in tickers:
+                key = (theme_id, quarter, style)
+                agg[key] = agg.get(key, 0.0) + (value or 0.0)
+
+    styles = sorted({s for (_t, _q, s) in agg})
+    out: dict[str, dict] = {}
+    for theme_id in theme_tickers:
+        by_style = {}
+        for style in styles:
+            cur = agg.get((theme_id, latest, style), 0.0)
+            old = agg.get((theme_id, prev, style), 0.0) if prev else 0.0
+            if cur or old:
+                by_style[style] = {"value": cur, "prev": old, "delta": cur - old}
+        if not by_style:
+            continue
+        total = sum(v["value"] for v in by_style.values())
+        prev_total = sum(v["prev"] for v in by_style.values())
+        out[theme_id] = {
+            "quarter": latest,
+            "prev_quarter": prev,
+            "total": total,
+            "prev_total": prev_total,
+            "delta": total - prev_total,
+            "by_style": by_style,
+        }
+    return out
+
+
 def quadrant_breadth(day_scores: dict[str, dict]) -> dict[str, int]:
     """How many themes sit in each rotation quadrant on one day.
 

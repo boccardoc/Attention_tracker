@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ScoresResponse } from "./lib/types";
 import Concentration from "./components/Concentration";
+import Institutions from "./components/Institutions";
 import RotationMap from "./components/RotationMap";
 import ThemeDetail from "./components/ThemeDetail";
 import Movers from "./components/Movers";
 
-type Tab = "concentration" | "map" | "detail" | "movers";
+type Tab = "concentration" | "map" | "detail" | "movers" | "institutions";
 
 export default function Page() {
   const [data, setData] = useState<ScoresResponse | null>(null);
@@ -40,6 +41,7 @@ export default function Page() {
     { key: "map", label: "Rotation Map" },
     { key: "detail", label: "Theme Detail" },
     { key: "movers", label: "Movers" },
+    { key: "institutions", label: "Institutions" },
   ];
 
   return (
@@ -108,6 +110,13 @@ export default function Page() {
           )}
           {tab === "movers" && (
             <Movers themes={data.themes} onSelect={openTheme} />
+          )}
+          {tab === "institutions" && (
+            <Institutions
+              data={data.institutions ?? { quarter: null, prevQuarter: null, themes: [], analysts: [] }}
+              themes={data.themes}
+              onSelect={openTheme}
+            />
           )}
         </>
       )}
